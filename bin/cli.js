@@ -5,7 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
-const VERSION = '0.1.0';
+const VERSION = require('../package.json').version;
 const DATA_DIR = path.join(os.homedir(), '.claude-api-bridge');
 
 // ── Helpers ──────────────────────────────────────────────
@@ -20,25 +20,26 @@ function error(msg) {
 }
 
 function checkClaudeCli() {
-  try {
-    const version = execSync('claude --version 2>/dev/null', { encoding: 'utf-8' }).trim();
-    return version;
-  } catch {
-    // Try common install paths
-    const paths = [
-      '/usr/local/bin/claude',
-      path.join(os.homedir(), '.claude', 'local', 'claude'),
-      path.join(os.homedir(), '.local', 'bin', 'claude'),
-    ];
-    for (const p of paths) {
-      if (fs.existsSync(p)) {
-        try {
-          return execSync(`"${p}" --version 2>/dev/null`, { encoding: 'utf-8' }).trim();
-        } catch { /* continue */ }
-      }
-    }
-    return null;
+  const { execFileSync } = require('child_process');
+  const candidates = [
+    'claude',
+    '/usr/local/bin/claude',
+    path.join(os.homedir(), '.claude', 'local', 'claude'),
+    path.join(os.homedir(), '.local', 'bin', 'claude'),
+  ];
+  // Windows paths
+  if (os.platform() === 'win32') {
+    candidates.push(
+      path.join(process.env.LOCALAPPDATA || '', 'Programs', 'claude', 'claude.exe'),
+      path.join(process.env.LOCALAPPDATA || '', 'claude-cli-nodejs', 'claude.exe'),
+    );
   }
+  for (const bin of candidates) {
+    try {
+      return execFileSync(bin, ['--version'], { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+    } catch { /* continue */ }
+  }
+  return null;
 }
 
 function ensureDataDir() {

@@ -1,9 +1,11 @@
-const { spawn } = require('child_process');
+const { spawn, execFileSync } = require('child_process');
 const path = require('path');
 const os = require('os');
 
 const DEFAULT_WORKING_DIR = path.join(os.homedir(), 'claude-api-bridge-workspace');
 const MAX_MESSAGE_SIZE = 32 * 1024; // 32KB
+const MAX_OUTPUT_SIZE = 10 * 1024 * 1024; // 10MB
+const EXECUTION_TIMEOUT = 300000; // 5 minutes
 
 // Find claude CLI binary
 function findClaudeBinary() {
@@ -16,7 +18,7 @@ function findClaudeBinary() {
 
   for (const bin of candidates) {
     try {
-      require('child_process').execSync(`"${bin}" --version 2>/dev/null`, { encoding: 'utf-8' });
+      execFileSync(bin, ['--version'], { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] });
       return bin;
     } catch { /* continue */ }
   }
@@ -64,7 +66,6 @@ function execute(message, options = {}) {
     const child = spawn(CLAUDE_BIN, args, {
       cwd: workingDir,
       stdio: ['pipe', 'pipe', 'pipe'],
-      timeout: 300000, // 5 min timeout
       env: {
         ...process.env,
         // Disable interactive features
@@ -74,16 +75,36 @@ function execute(message, options = {}) {
 
     let stdout = '';
     let stderr = '';
+    let killed = false;
+
+    // Manual timeout since spawn ignores the timeout option
+    const killTimer = setTimeout(() => {
+      killed = true;
+      child.kill('SIGTERM');
+    }, EXECUTION_TIMEOUT);
 
     child.stdout.on('data', (data) => {
       stdout += data.toString();
+      if (stdout.length > MAX_OUTPUT_SIZE) {
+        killed = true;
+        child.kill('SIGTERM');
+      }
     });
 
     child.stderr.on('data', (data) => {
       stderr += data.toString();
+      if (stderr.length > MAX_OUTPUT_SIZE) {
+        killed = true;
+        child.kill('SIGTERM');
+      }
     });
 
     child.on('close', (code) => {
+      clearTimeout(killTimer);
+
+      if (killed) {
+        return reject(new Error('Claude CLI was terminated: timeout or output too large'));
+      }
       if (code !== 0) {
         return reject(new Error(`Claude CLI exited with code ${code}: ${stderr || stdout}`));
       }
@@ -127,6 +148,7 @@ function execute(message, options = {}) {
     });
 
     child.on('error', (err) => {
+      clearTimeout(killTimer);
       reject(new Error(`Failed to spawn Claude CLI: ${err.message}`));
     });
   });

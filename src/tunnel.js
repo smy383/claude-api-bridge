@@ -10,14 +10,17 @@ const CLOUDFLARED_DIR = path.join(os.homedir(), '.claude-api-bridge', 'bin');
  * Check if cloudflared is installed
  */
 function findCloudflared() {
+  const { execFileSync } = require('child_process');
+  const binName = os.platform() === 'win32' ? 'cloudflared.exe' : 'cloudflared';
+
   // 1. Check system PATH
   try {
-    execSync('cloudflared --version 2>/dev/null', { encoding: 'utf-8' });
-    return 'cloudflared';
+    execFileSync(binName, ['--version'], { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] });
+    return binName;
   } catch { /* continue */ }
 
   // 2. Check our local copy
-  const localBin = path.join(CLOUDFLARED_DIR, 'cloudflared');
+  const localBin = path.join(CLOUDFLARED_DIR, binName);
   if (fs.existsSync(localBin)) {
     return localBin;
   }

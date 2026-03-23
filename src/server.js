@@ -14,7 +14,13 @@ async function start(port, options = {}) {
   // ── Middleware ──
 
   app.use(helmet({
-    contentSecurityPolicy: false, // Allow dashboard inline scripts
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+      },
+    },
   }));
 
   app.use(cors({
@@ -95,35 +101,24 @@ async function start(port, options = {}) {
     console.log('');
   }
 
+  // ── Recover stuck requests from previous crash ──
+
+  db.getDb().prepare("UPDATE requests SET status = 'queued' WHERE status = 'processing'").run();
+
   // ── Start Cloudflare Tunnel ──
+
+  let tunnelProcess = null;
 
   if (!options.noTunnel) {
     try {
       console.log('  🌐  Connecting Cloudflare Tunnel...');
-      const { url, process: tunnelProcess } = await tunnel.startTunnel(port);
+      const result = await tunnel.startTunnel(port);
+      tunnelProcess = result.process;
 
       console.log('');
-      console.log('  ┌──────────────────────────────────────────────┐');
-      console.log('  │  🌐  Public URL                              │');
-      console.log('  │                                              │');
-      console.log(`  │  ${url.padEnd(44)}│`);
-      console.log('  │                                              │');
-      console.log('  │  Access your Claude API from anywhere!       │');
-      console.log('  └──────────────────────────────────────────────┘');
+      console.log(`  🌐  Public URL: ${result.url}`);
+      console.log(`  📖  Dashboard: ${result.url}/dashboard`);
       console.log('');
-      console.log(`  📖  Dashboard: ${url}/dashboard`);
-      console.log('');
-
-      // Graceful shutdown
-      const cleanup = () => {
-        console.log('\n  Shutting down...');
-        tunnelProcess.kill();
-        server.close();
-        process.exit(0);
-      };
-
-      process.on('SIGINT', cleanup);
-      process.on('SIGTERM', cleanup);
 
     } catch (err) {
       console.log(`  ⚠️  Tunnel failed: ${err.message}`);
@@ -138,9 +133,22 @@ async function start(port, options = {}) {
 
   // ── Periodic cleanup ──
 
-  setInterval(() => {
+  const cleanupInterval = setInterval(() => {
     db.cleanupOldRequests(7);
   }, 60 * 60 * 1000); // Every hour
+
+  // ── Graceful shutdown (all modes) ──
+
+  const cleanup = () => {
+    console.log('\n  Shutting down...');
+    clearInterval(cleanupInterval);
+    if (tunnelProcess) tunnelProcess.kill();
+    server.close();
+    process.exit(0);
+  };
+
+  process.on('SIGINT', cleanup);
+  process.on('SIGTERM', cleanup);
 
   return server;
 }

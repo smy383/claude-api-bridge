@@ -33,7 +33,7 @@ function authenticate(requireAdmin = false) {
 
 // ── Token management ──
 
-function createToken({ name, sessionMode, expiresInDays, rateLimit }) {
+function createToken({ name, sessionMode, expiresInDays }) {
   if (!name || typeof name !== 'string' || name.trim().length === 0) {
     throw new Error('Token name is required');
   }
@@ -60,7 +60,6 @@ function createToken({ name, sessionMode, expiresInDays, rateLimit }) {
     name: name.trim(),
     sessionMode: sessionMode || 'stateless',
     expiresInDays: expiresInDays || null,
-    rateLimit: rateLimit || 60,
   });
 }
 
@@ -74,7 +73,6 @@ function listTokens() {
     createdAt: new Date(t.created_at * 1000).toISOString(),
     lastUsedAt: t.last_used_at ? new Date(t.last_used_at * 1000).toISOString() : null,
     isAdmin: !!t.is_admin,
-    rateLimit: t.rate_limit,
     isExpired: t.expires_at ? t.expires_at < Math.floor(Date.now() / 1000) : false,
   }));
 }

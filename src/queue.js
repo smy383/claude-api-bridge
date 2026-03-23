@@ -44,9 +44,6 @@ async function processNext() {
   try {
     db.updateRequest(request.id, { status: 'processing' });
 
-    // Get token info for session mode
-    const token = db.verifyToken ? null : null; // Token already validated at API layer
-
     // Build execution options
     const options = {};
 
@@ -102,7 +99,6 @@ function getStatus() {
 
 module.exports = {
   enqueue,
-  processNext,
   getStatus,
   MAX_QUEUE_SIZE,
 };

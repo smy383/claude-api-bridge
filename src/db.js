@@ -33,8 +33,7 @@ function getDb() {
       expires_at INTEGER,
       created_at INTEGER NOT NULL DEFAULT (unixepoch()),
       last_used_at INTEGER,
-      is_admin INTEGER NOT NULL DEFAULT 0,
-      rate_limit INTEGER NOT NULL DEFAULT 60
+      is_admin INTEGER NOT NULL DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS requests (
@@ -80,15 +79,15 @@ function generateToken() {
   return { raw, hash: hashToken(raw), prefix: raw.substring(0, 12) };
 }
 
-function createToken({ name, sessionMode = 'stateless', expiresInDays = null, isAdmin = false, rateLimit = 60 }) {
+function createToken({ name, sessionMode = 'stateless', expiresInDays = null, isAdmin = false }) {
   const { raw, hash, prefix } = generateToken();
   const id = crypto.randomUUID();
   const expiresAt = expiresInDays ? Math.floor(Date.now() / 1000) + expiresInDays * 86400 : null;
 
   getDb().prepare(`
-    INSERT INTO tokens (id, name, token_hash, token_prefix, session_mode, expires_at, is_admin, rate_limit)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, name, hash, prefix, sessionMode, expiresAt, isAdmin ? 1 : 0, rateLimit);
+    INSERT INTO tokens (id, name, token_hash, token_prefix, session_mode, expires_at, is_admin)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(id, name, hash, prefix, sessionMode, expiresAt, isAdmin ? 1 : 0);
 
   return { id, raw, prefix };
 }
@@ -106,7 +105,7 @@ function updateTokenLastUsed(id) {
 }
 
 function listTokens() {
-  return getDb().prepare('SELECT id, name, token_prefix, session_mode, expires_at, created_at, last_used_at, is_admin, rate_limit FROM tokens ORDER BY created_at DESC').all();
+  return getDb().prepare('SELECT id, name, token_prefix, session_mode, expires_at, created_at, last_used_at, is_admin FROM tokens ORDER BY created_at DESC').all();
 }
 
 function deleteToken(id) {

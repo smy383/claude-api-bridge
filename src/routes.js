@@ -50,7 +50,8 @@ router.post('/api/ask', auth.authenticate(), (req, res) => {
     if (err.message.includes('Queue is full')) {
       return res.status(429).json({ error: err.message });
     }
-    res.status(500).json({ error: err.message });
+    console.error('POST /api/ask error:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -89,7 +90,9 @@ router.get('/api/ask/:requestId', auth.authenticate(), (req, res) => {
   res.status(202).json({
     status: request.status, // 'queued' or 'processing'
     requestId: request.id,
-    queuePosition: request.status === 'queued' ? db.getQueueLength() : 0,
+    queuePosition: request.status === 'queued'
+      ? db.getDb().prepare("SELECT COUNT(*) as c FROM requests WHERE status = 'queued' AND created_at <= ?").get(request.created_at).c
+      : 0,
   });
 });
 
@@ -97,8 +100,8 @@ router.get('/api/ask/:requestId', auth.authenticate(), (req, res) => {
 
 router.post('/api/tokens', auth.authenticate(true), (req, res) => {
   try {
-    const { name, sessionMode, expiresInDays, rateLimit } = req.body;
-    const result = auth.createToken({ name, sessionMode, expiresInDays, rateLimit });
+    const { name, sessionMode, expiresInDays } = req.body;
+    const result = auth.createToken({ name, sessionMode, expiresInDays });
 
     res.status(201).json({
       ok: true,
@@ -123,6 +126,18 @@ router.get('/api/tokens', auth.authenticate(true), (req, res) => {
 // ── DELETE /api/tokens/:id — Delete token (admin only) ──
 
 router.delete('/api/tokens/:id', auth.authenticate(true), (req, res) => {
+  // Prevent deleting the last admin token
+  const tokenToDelete = db.getDb().prepare('SELECT * FROM tokens WHERE id = ?').get(req.params.id);
+  if (!tokenToDelete) {
+    return res.status(404).json({ error: 'Token not found' });
+  }
+  if (tokenToDelete.is_admin) {
+    const adminCount = db.getDb().prepare('SELECT COUNT(*) as c FROM tokens WHERE is_admin = 1').get().c;
+    if (adminCount <= 1) {
+      return res.status(400).json({ error: 'Cannot delete the last admin token' });
+    }
+  }
+
   const deleted = auth.deleteToken(req.params.id);
   if (!deleted) {
     return res.status(404).json({ error: 'Token not found' });
@@ -139,10 +154,6 @@ router.get('/api/status', (req, res) => {
   res.json({
     status: 'running',
     version: require('../package.json').version,
-    claude: {
-      binary: claude.CLAUDE_BIN,
-      workingDir: claude.DEFAULT_WORKING_DIR,
-    },
     queue: {
       isProcessing: queueStatus.isProcessing,
       length: queueStatus.queueLength,
