@@ -1,6 +1,6 @@
 {
   "name": "claude-api-bridge",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Turn your Claude Code subscription into a REST API. Access Claude Code from anywhere with a single command.",
   "main": "src/server.js",
   "bin": {
