@@ -14,15 +14,13 @@
 
 ---
 
-## The Problem
+## Why?
 
-You're paying **$100+/month** for Claude Code (Max plan). It's incredibly powerful — but it's trapped in your terminal. The official Anthropic API charges per token, so you'd be **paying twice** for the same AI.
+If you're already paying for Claude Code (Max plan), you have access to an incredibly powerful AI right in your terminal. **claude-api-bridge** lets you get more out of that subscription — use it from your web apps, scripts, bots, CI pipelines, or any service.
 
-Existing open-source wrappers only work on `localhost`. If you want to call Claude Code from a deployed web app, a Slack bot, or a CI pipeline — you're stuck.
+Anthropic does have an official API, but it's pay-per-token — a separate cost. Since you're already paying for a subscription, why not use what you've got?
 
-## The Solution
-
-**claude-api-bridge** lets you use your **existing Claude Code subscription** as a REST API. One command, and you get a secure HTTPS endpoint accessible from anywhere in the world.
+Existing open-source wrappers work great but are limited to `localhost`. **claude-api-bridge** adds **remote access** via Cloudflare Tunnel — so you get a secure HTTPS endpoint accessible from anywhere, with just one command.
 
 ```bash
 npx claude-api-bridge start
