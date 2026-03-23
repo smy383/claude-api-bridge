@@ -16,13 +16,13 @@
 
 ## The Problem
 
-You're paying **$100+/month** for Claude Code (Max plan). It's incredibly powerful — but it's trapped in your terminal. There's **no official HTTP API** to use it from your apps, scripts, or services.
+You're paying **$100+/month** for Claude Code (Max plan). It's incredibly powerful — but it's trapped in your terminal. The official Anthropic API charges per token, so you'd be **paying twice** for the same AI.
 
 Existing open-source wrappers only work on `localhost`. If you want to call Claude Code from a deployed web app, a Slack bot, or a CI pipeline — you're stuck.
 
 ## The Solution
 
-**claude-api-bridge** turns your desktop into a Claude Code API server. One command, and you get a secure HTTPS endpoint accessible from anywhere in the world.
+**claude-api-bridge** lets you use your **existing Claude Code subscription** as a REST API. One command, and you get a secure HTTPS endpoint accessible from anywhere in the world.
 
 ```bash
 npx claude-api-bridge start
