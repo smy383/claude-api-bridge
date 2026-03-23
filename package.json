@@ -1,0 +1,39 @@
+{
+  "name": "claude-api-bridge",
+  "version": "0.1.0",
+  "description": "Turn your Claude Code subscription into a REST API. Access Claude Code from anywhere with a single command.",
+  "main": "src/server.js",
+  "bin": {
+    "claude-api-bridge": "./bin/cli.js"
+  },
+  "scripts": {
+    "start": "node bin/cli.js start",
+    "dev": "node bin/cli.js start --no-tunnel"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "api",
+    "bridge",
+    "rest-api",
+    "ai",
+    "anthropic"
+  ],
+  "author": "mogee",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/smy383/claude-api-bridge.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "helmet": "^8.0.0",
+    "express-rate-limit": "^7.4.0",
+    "uuid": "^10.0.0"
+  }
+}
