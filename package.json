@@ -25,6 +25,12 @@
     "type": "git",
     "url": "https://github.com/smy383/claude-api-bridge.git"
   },
+  "files": [
+    "bin/",
+    "src/",
+    "LICENSE",
+    "README.md"
+  ],
   "engines": {
     "node": ">=18.0.0"
   },
